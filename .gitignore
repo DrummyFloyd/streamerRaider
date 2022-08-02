@@ -11,10 +11,12 @@ userList*.json
 userDescriptions*.json
 discordGuildIdToProfile.json
 env.conf
-
+letsencrypt/
 # local env files
 .env.local
 .env.*.local
+.env
+!.env.conf
 
 # Log files
 npm-debug.log*

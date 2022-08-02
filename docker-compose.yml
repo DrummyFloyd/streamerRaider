@@ -1,0 +1,49 @@
+version: "3"
+
+services:
+  traefik:
+    image: traefik:latest
+    container_name: traefik
+    restart: unless-stopped
+    ports:
+      - "443:443"
+      - "80:80"
+      - "8080:8080"
+    command:
+      # Tell Traefik to discover containers using the Docker API
+      - --providers.docker=true
+      - --log.level=INFO
+      # Enable the Trafik dashboard
+      - --api.dashboard=true
+      # Set up LetsEncrypt
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.myresolver.acme.dnschallenge=true"
+      - "--certificatesresolvers.myresolver.acme.dnschallenge.provider=cloudflare"
+      #- "--certificatesresolvers.myresolver.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
+      - "--certificatesresolvers.myresolver.acme.email=${MAIL}"
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+    environment:
+      # IONOS_API_KEY: ${IONOS_API_KEY}
+      - "CF_API_EMAIL=${CF_API_EMAIL}"
+      - "CF_API_KEY=${CF_API_KEY}"
+      - "CF_ZONE_API_TOKEN=${CF_ZONE_API_TOKEN}"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./letsencrypt:/letsencrypt
+  raider:
+    build: .
+    image: raider
+    ports:
+      - 3012:3012
+    volumes:
+      - ./data/:/app/data:rw
+    labels:
+      - "traefik.enable=true"
+      - 'traefik.http.routers.raider.rule=Host(`${DOMAIN_NAME}`)'
+      - "traefik.http.routers.raider.entrypoints=websecure,web"
+      - "traefik.http.routers.raider.tls.certresolver=myresolver"
+      - "traefik.http.services.my-service.loadbalancer.server.port=3012"
